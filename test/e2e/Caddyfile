@@ -1,0 +1,111 @@
+# End to end Caddyfile: one listener per scenario. Values come from the
+# environment (see docker-compose.yml). The API key is the module default,
+# {env.IPSCANNER_API_KEY}.
+{
+	admin off
+	auto_https off
+	# First match wins: the untrusted listener before the catch-all.
+	servers :18096 {
+		trusted_proxies static 203.0.113.0/24
+	}
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+	}
+}
+
+(upstream) {
+	reverse_proxy upstream:8080
+}
+
+# Site from the dashboard: policy, debug headers, vars, access log fields.
+:18091 {
+	log {
+		output stdout
+		format json
+	}
+	log_append ipscanner_class {http.vars.ipscanner.class}
+	log_append ipscanner_action {http.vars.ipscanner.action}
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+		site_id {$SITE_ENFORCE}
+		policy_ttl 3s
+		debug
+	}
+	@flagged vars ipscanner.action flag
+	request_header @flagged X-Flagged 1
+	import upstream
+}
+
+# No site, enforce: blocked classes from the config.
+:18092 {
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+		mode enforce
+		block_classes malicious_automation tor
+	}
+	import upstream
+}
+
+# No site, defaults: monitor, malicious_automation.
+:18093 {
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+	}
+	import upstream
+}
+
+# Dead API: fail open, then backoff.
+:18094 {
+	ipscanner {
+		api_url {$DEAD_API_URL}
+		mode enforce
+		block_classes tor
+	}
+	import upstream
+}
+
+# Slow API: the timeout bounds the request.
+:18095 {
+	ipscanner {
+		api_url {$SLOW_API_URL}
+		mode enforce
+		block_classes tor
+		timeout 500ms
+	}
+	import upstream
+}
+
+# The peer is not a trusted proxy here: X-Forwarded-For is ignored.
+:18096 {
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+		site_id {$SITE_ENFORCE}
+	}
+	import upstream
+}
+
+# Site in monitor mode on the dashboard.
+:18097 {
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+		site_id {$SITE_MONITOR}
+	}
+	import upstream
+}
+
+# Enforce site, monitor forced in the Caddyfile.
+:18098 {
+	ipscanner {
+		api_url {$IPSCANNER_API_URL}
+		timeout {$E2E_TIMEOUT}
+		site_id {$SITE_ENFORCE}
+		mode monitor
+	}
+	import upstream
+}

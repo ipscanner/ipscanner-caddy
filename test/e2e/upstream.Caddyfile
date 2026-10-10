@@ -1,0 +1,10 @@
+# Echoes the headers the guard added.
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	header Content-Type application/json
+	respond `{"status":"{header.X-IPScanner-Status}","class":"{header.X-IPScanner-Class}","action":"{header.X-IPScanner-Action}","network":"{header.X-IPScanner-Network-Class}","site":"{header.X-IPScanner-Site}","country":"{header.X-IPScanner-Country}","flagged":"{header.X-Flagged}"}` 200
+}

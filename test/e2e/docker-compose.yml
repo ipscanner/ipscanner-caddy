@@ -1,0 +1,30 @@
+name: ipscanner-caddy-e2e
+
+services:
+  upstream:
+    image: caddy:2.11-alpine
+    container_name: ipscanner-caddy-e2e-upstream
+    volumes:
+      - ./upstream.Caddyfile:/etc/caddy/Caddyfile:ro
+
+  caddy:
+    image: caddy:2.11-alpine
+    container_name: ipscanner-caddy-e2e-caddy
+    depends_on:
+      - upstream
+    volumes:
+      - ./.build/caddy:/usr/bin/caddy:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    environment:
+      # Passed through from the shell, never written here.
+      IPSCANNER_API_KEY:
+      IPSCANNER_API_URL: ${IPSCANNER_API_URL_DOCKER:-http://host.docker.internal:3050}
+      E2E_TIMEOUT: ${E2E_TIMEOUT:-1.5s}
+      DEAD_API_URL: http://host.docker.internal:3999
+      SLOW_API_URL: http://host.docker.internal:18099
+      SITE_ENFORCE: ${IPSCANNER_E2E_SITE:-site_caddye2e000000000001}
+      SITE_MONITOR: ${IPSCANNER_E2E_SITE_MONITOR:-site_caddye2e000000000002}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1:18091-18098:18091-18098
