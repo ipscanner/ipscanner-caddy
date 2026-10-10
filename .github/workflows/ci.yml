@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.22", "stable"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test -race ./...
+
+  xcaddy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: build caddy with the module
+        run: |
+          go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.7
+          xcaddy build --with github.com/ipscanner/ipscanner-caddy=.
+      - name: module registered
+        run: ./caddy list-modules | grep -x http.handlers.ipscanner
+      - name: caddyfile adapts without an order line
+        run: |
+          printf ':8080 {\n\treverse_proxy localhost:9000\n\tipscanner {\n\t\tmode enforce\n\t}\n}\n' > Caddyfile.ci
+          ./caddy adapt --config Caddyfile.ci --validate
