@@ -356,7 +356,10 @@ func TestE2E(t *testing.T) {
 
 	t.Run("verdict cache and request log", func(t *testing.T) {
 		ua := uniqueUA(chromeUA)
-		since := time.Now()
+		// request_log keeps milliseconds: start on a fresh millisecond so
+		// earlier rows stay out and the first request is counted.
+		time.Sleep(5 * time.Millisecond)
+		since := time.Now().Truncate(time.Millisecond)
 		first := visit(t, portSite, "/a", ipResidential, ua)
 		second := visit(t, portSite, "/b", ipResidential, ua)
 		if first.Upstream.Status != "ok" || second.Upstream.Status != "ok" || second.Upstream.Class != first.Upstream.Class {
@@ -438,7 +441,7 @@ func waitRows(t *testing.T, since time.Time, n int) []logRow {
 			if err != nil {
 				t.Fatalf("created_at %q", r.CreatedAt)
 			}
-			if at.After(since) {
+			if !at.Before(since) {
 				fresh = append(fresh, r)
 			}
 		}
@@ -455,7 +458,7 @@ func waitRowsOnce(t *testing.T, since time.Time) []logRow {
 	var fresh []logRow
 	for _, r := range rows(t, 200) {
 		at, _ := time.Parse(time.RFC3339Nano, r.CreatedAt)
-		if r.Site == siteEnforce() && at.After(since) {
+		if r.Site == siteEnforce() && !at.Before(since) {
 			fresh = append(fresh, r)
 		}
 	}
