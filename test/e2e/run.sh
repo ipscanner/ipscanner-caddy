@@ -1,22 +1,5 @@
 #!/bin/sh
-# End to end run: builds Caddy with this module (xcaddy in the caddy builder
-# image), starts it in front of an echo upstream and runs the scenarios in
-# e2e_test.go against a real IPScanner API.
-#
-#   IPSCANNER_KEY_FILE=/path/to/key \
-#   IPSCANNER_E2E_SITE_HELPER=/path/to/site.cjs \
-#   sh test/e2e/run.sh
-#
-# IPSCANNER_API_URL (default http://localhost:3050) is the API as the host
-# sees it, IPSCANNER_API_URL_DOCKER (default http://host.docker.internal:3050)
-# as the Caddy container sees it. The helper is a node script:
-# `node site.cjs <site> <source_type> <mode> '<policy>'` upserts a test site
-# and prints its row, `node site.cjs rows <source> [n]` prints request_log
-# rows. CADDY_VERSION picks the Caddy release (default v2.11.7).
-# IPSCANNER_EDGE_GO_DIR points at a local checkout of the core, used with
-# --replace when it exists (default ../ipscanner-edge-go). E2E_TIMEOUT
-# (default 1.5s) is the module timeout against the real API; raise it on a
-# slow link. KEEP=1 leaves the containers running.
+# Usage: IPSCANNER_KEY_FILE=key IPSCANNER_E2E_SITE_HELPER=site.cjs sh test/e2e/run.sh (KEEP=1 keeps containers)
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)

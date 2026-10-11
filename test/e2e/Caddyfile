@@ -1,6 +1,4 @@
-# End to end Caddyfile: one listener per scenario. Values come from the
-# environment (see docker-compose.yml). The API key is the module default,
-# {env.IPSCANNER_API_KEY}.
+# No api_key: the module default {env.IPSCANNER_API_KEY} applies.
 {
 	admin off
 	auto_https off
@@ -18,7 +16,6 @@
 	reverse_proxy upstream:8080
 }
 
-# Site from the dashboard: policy, debug headers, vars, access log fields.
 :18091 {
 	log {
 		output stdout
@@ -38,7 +35,6 @@
 	import upstream
 }
 
-# No site, enforce: blocked classes from the config.
 :18092 {
 	ipscanner {
 		api_url {$IPSCANNER_API_URL}
@@ -49,7 +45,6 @@
 	import upstream
 }
 
-# No site, defaults: monitor, malicious_automation.
 :18093 {
 	ipscanner {
 		api_url {$IPSCANNER_API_URL}
@@ -58,7 +53,6 @@
 	import upstream
 }
 
-# Dead API: fail open, then backoff.
 :18094 {
 	ipscanner {
 		api_url {$DEAD_API_URL}
@@ -68,7 +62,6 @@
 	import upstream
 }
 
-# Slow API: the timeout bounds the request.
 :18095 {
 	ipscanner {
 		api_url {$SLOW_API_URL}
@@ -89,7 +82,6 @@
 	import upstream
 }
 
-# Site in monitor mode on the dashboard.
 :18097 {
 	ipscanner {
 		api_url {$IPSCANNER_API_URL}
@@ -99,7 +91,6 @@
 	import upstream
 }
 
-# Enforce site, monitor forced in the Caddyfile.
 :18098 {
 	ipscanner {
 		api_url {$IPSCANNER_API_URL}

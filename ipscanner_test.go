@@ -29,7 +29,6 @@ const (
 	chromeUA      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 )
 
-// fakeAPI is a stub of /v1/edge/check and /v1/sites/{id}/policy.
 type fakeAPI struct {
 	srv *httptest.Server
 
@@ -123,8 +122,7 @@ func provision(t *testing.T, h *Handler) *Handler {
 	return h
 }
 
-// request builds a request as Caddy's server hands it to a handler: the
-// vars with the resolved client IP, a replacer and the original request.
+// request mimics Caddy's server: resolved client IP var, replacer and original request.
 func request(clientIP, path, ua string) *http.Request {
 	r := httptest.NewRequest(http.MethodGet, "http://example.test"+path, nil)
 	r.RemoteAddr = "172.18.0.1:40000"
@@ -346,7 +344,6 @@ func TestEnforceNoSite(t *testing.T) {
 	api := newFakeAPI(t)
 	h := provision(t, &Handler{APIKey: "pk_test_x", APIURL: api.srv.URL, Mode: "enforce", BlockClasses: []string{"tor"}, Debug: true})
 
-	// Residential: passes, headers for the upstream, vars set.
 	r := request(ipResidential, "/page", chromeUA)
 	r.Header.Set("X-IPScanner-Class", "verified_bot") // spoofed verdict
 	w, next := serve(t, h, r)
@@ -378,7 +375,6 @@ func TestEnforceNoSite(t *testing.T) {
 		t.Fatalf("request_id %q", id)
 	}
 
-	// Tor: 403 with the block page, next not called.
 	r = request(ipTor, "/page", chromeUA)
 	w, next = serve(t, h, r)
 	if next.called || w.Code != 403 || !strings.Contains(w.Body.String(), "Blocked by IPScanner") {
@@ -388,7 +384,6 @@ func TestEnforceNoSite(t *testing.T) {
 		t.Fatalf("tor headers %v", w.Header())
 	}
 
-	// VPN: not in block_classes, passes.
 	_, next = serve(t, h, request(ipVPN, "/page", chromeUA))
 	if !next.called || next.header.Get("X-IPScanner-Class") != "vpn" || next.header.Get("X-IPScanner-Action") != "allow" {
 		t.Fatalf("vpn: %v", next.header)
@@ -445,7 +440,6 @@ func TestCacheAndSkip(t *testing.T) {
 		t.Fatalf("another user agent is another visitor: %d", n)
 	}
 
-	// Static assets are skipped, by the path the visitor sent.
 	r := request(ipTor, "/app.css", chromeUA)
 	_, next := serve(t, h, r)
 	if api.checkCount() != 2 || next.header.Get("X-IPScanner-Status") != "skipped" {
@@ -503,7 +497,6 @@ func TestFailOpen(t *testing.T) {
 		t.Fatalf("fail open took %s", time.Since(start))
 	}
 
-	// Slow API: the timeout bounds the request.
 	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-time.After(3 * time.Second):
@@ -530,7 +523,6 @@ func TestNoKey(t *testing.T) {
 
 func TestLogLine(t *testing.T) {
 	h := &Handler{}
-	// Falls back to the default logger and accepts any line.
 	h.logLine(`{"ipscanner":"upstream failure","status":"error","code":0}`)
 	h.logLine(`{"ip":"1.2.3.4","status":"timeout","decision":"allow"}`)
 	h.logLine(`{"ip":"1.2.3.4","trafficClass":"human","decision":"allow"}`)

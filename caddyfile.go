@@ -11,8 +11,7 @@ import (
 
 func init() {
 	httpcaddyfile.RegisterHandlerDirective("ipscanner", parseCaddyfile)
-	// Before basic_auth: after header, redir and rewrites, ahead of auth,
-	// reverse_proxy and file_server. No global "order" line needed.
+	// Ordered before basic_auth so no global order line is needed.
 	httpcaddyfile.RegisterDirectiveOrder("ipscanner", httpcaddyfile.Before, "basic_auth")
 }
 
@@ -22,24 +21,8 @@ func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error)
 	return m, err
 }
 
-// UnmarshalCaddyfile sets up the handler from Caddyfile tokens:
-//
-//	ipscanner [<matcher>] {
-//	    api_key       <key>
-//	    api_url       <url>
-//	    site_id       <site_...>
-//	    mode          monitor|enforce
-//	    block_classes <class...>
-//	    timeout       <duration>
-//	    cache_ttl     <duration>
-//	    cache_size    <entries>
-//	    policy_ttl    <duration>
-//	    skip_paths    <regexp>|none
-//	    block_message <text>
-//	    debug
-//	}
 func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	d.Next() // directive name
+	d.Next()
 	if d.NextArg() {
 		return d.ArgErr()
 	}
@@ -128,5 +111,4 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-// Interface guard.
 var _ caddyfile.Unmarshaler = (*Handler)(nil)

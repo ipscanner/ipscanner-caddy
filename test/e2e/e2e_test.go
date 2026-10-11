@@ -1,7 +1,6 @@
 //go:build e2e
 
-// Package e2e drives a real Caddy built with the module (see run.sh) against
-// a real IPScanner API. Run it with run.sh, not directly.
+// Package e2e runs a real Caddy with the module against a real API; run it via run.sh.
 package e2e
 
 import (
@@ -65,7 +64,6 @@ type siteRow struct {
 	ClientVersion *string `json:"client_version"`
 }
 
-// helper runs the site helper, with retries: it talks to the database.
 func helper(t *testing.T, args ...string) []byte {
 	t.Helper()
 	var err error
@@ -132,8 +130,7 @@ type echo struct {
 	}
 }
 
-// visit sends a request to a listener as the visitor at ip: the test client
-// is a trusted proxy (private range) for every listener but :18096.
+// visit sends ip as X-Forwarded-For; the test client is a trusted proxy on every listener but :18096.
 func visit(t *testing.T, port int, path, ip, ua string) echo {
 	t.Helper()
 	return visitXFF(t, port, path, ip, ua)
@@ -165,8 +162,7 @@ func visitXFF(t *testing.T, port int, path, xff, ua string) echo {
 	return e
 }
 
-// warm makes one call with a long timeout, so a cold API does not make the
-// first scenario fail open.
+// warm absorbs a cold API start so the first scenario does not fail open.
 func warm(t *testing.T) {
 	t.Helper()
 	raw, err := os.ReadFile(os.Getenv("IPSCANNER_KEY_FILE"))
@@ -259,7 +255,6 @@ func TestE2E(t *testing.T) {
 		}
 	})
 
-	// Real API from here on.
 	setSite(t, siteEnforce(), "enforce", map[string]string{"tor": "block", "vpn": "flag", "verified_bot": "block"})
 	setSite(t, siteMonitor(), "monitor", map[string]string{"tor": "block", "vpn": "block"})
 	warm(t)
@@ -280,7 +275,6 @@ func TestE2E(t *testing.T) {
 		if e.Code != 403 || !strings.Contains(e.Body, "Blocked by IPScanner") || e.Header.Get("X-Ipscanner-Action") != "block" {
 			t.Fatalf("%d %v %q", e.Code, e.Header, e.Body)
 		}
-		// The block page shows Caddy's request UUID.
 		if !regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`).MatchString(e.Body) {
 			t.Fatalf("no request id on the block page: %q", e.Body)
 		}
@@ -356,8 +350,7 @@ func TestE2E(t *testing.T) {
 
 	t.Run("verdict cache and request log", func(t *testing.T) {
 		ua := uniqueUA(chromeUA)
-		// request_log keeps milliseconds: start on a fresh millisecond so
-		// earlier rows stay out and the first request is counted.
+		// request_log keeps milliseconds: start on a fresh one so earlier rows stay out.
 		time.Sleep(5 * time.Millisecond)
 		since := time.Now().Truncate(time.Millisecond)
 		first := visit(t, portSite, "/a", ipResidential, ua)
@@ -365,8 +358,7 @@ func TestE2E(t *testing.T) {
 		if first.Upstream.Status != "ok" || second.Upstream.Status != "ok" || second.Upstream.Class != first.Upstream.Class {
 			t.Fatalf("%+v / %+v", first.Upstream, second.Upstream)
 		}
-		// A marker after the cached request: the log is written in order,
-		// so once the marker is there a call by the second request would be.
+		// The log is written in order: once the marker row is there, a call by the second request would be too.
 		marker := visit(t, portSite, "/c", ipVPN, uniqueUA(chromeUA))
 		if marker.Upstream.Class != "vpn" {
 			t.Fatalf("marker %+v", marker.Upstream)
