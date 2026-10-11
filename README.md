@@ -2,8 +2,6 @@
 
 Caddy module that checks visitors with [IPScanner](https://ipscanner.io) before a request reaches your site, and blocks bots, Tor, VPN and proxy traffic by policy.
 
-It makes the same edge check as the [Cloudflare Worker](https://github.com/ipscanner/ipscanner-cloudflare) and the [WordPress plugin](https://github.com/ipscanner/ipscanner-wordpress) (`POST /v1/edge/check`, 2 request units per uncached visitor) and can follow a site's policy from the [dashboard](https://ipscanner.io/dashboard/sites). Module ID `http.handlers.ipscanner`, Caddyfile directive `ipscanner`.
-
 ## Install
 
 Build Caddy with the module:
