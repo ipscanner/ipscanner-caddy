@@ -10,7 +10,7 @@ Build Caddy with the module:
 xcaddy build --with github.com/ipscanner/ipscanner-caddy
 ```
 
-With Docker:
+Or pick `github.com/ipscanner/ipscanner-caddy` on [caddyserver.com/download](https://caddyserver.com/download). With Docker:
 
 ```dockerfile
 FROM caddy:2-builder AS builder
