@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/caddyserver/caddy/v2 v2.8.4
-	github.com/ipscanner/ipscanner-edge-go v0.1.0
+	github.com/ipscanner/ipscanner-edge-go v0.1.1
 	go.uber.org/zap v1.27.0
 )
 
