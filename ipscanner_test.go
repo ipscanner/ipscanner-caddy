@@ -36,6 +36,7 @@ type fakeAPI struct {
 	checks  []map[string]interface{}
 	headers []http.Header
 	policy  string // JSON body, "" = 404
+	mode    string // top level edge check mode, "" = absent
 }
 
 func newFakeAPI(t *testing.T) *fakeAPI {
@@ -71,8 +72,12 @@ func (f *fakeAPI) serve(w http.ResponseWriter, r *http.Request) {
 		if s, _ := body["site"].(string); s != "" {
 			site = fmt.Sprintf(`{"id":%q,"mode":"enforce","policyVersion":1}`, s)
 		}
-		fmt.Fprintf(w, `{"class":%q,"agent":{"class":"human","confidence":0.9,"action":"allow","signals":{}},"network":{"networkClass":%q,"anonymized":%t,"riskScore":10,"country":"DE"},"site":%s}`,
-			c[0], c[1], c[0] != "human", site)
+		mode := ""
+		if f.mode != "" {
+			mode = fmt.Sprintf(`"mode":%q,`, f.mode)
+		}
+		fmt.Fprintf(w, `{"class":%q,%s"agent":{"class":"human","confidence":0.9,"action":"allow","signals":{}},"network":{"networkClass":%q,"anonymized":%t,"riskScore":10,"country":"DE"},"site":%s}`,
+			c[0], mode, c[1], c[0] != "human", site)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/v1/sites/"):
 		if f.policy == "" {
 			w.WriteHeader(http.StatusNotFound)
@@ -387,6 +392,20 @@ func TestEnforceNoSite(t *testing.T) {
 	_, next = serve(t, h, request(ipVPN, "/page", chromeUA))
 	if !next.called || next.header.Get("X-IPScanner-Class") != "vpn" || next.header.Get("X-IPScanner-Action") != "allow" {
 		t.Fatalf("vpn: %v", next.header)
+	}
+}
+
+func TestMonitorAccountNeverBlocks(t *testing.T) {
+	api := newFakeAPI(t)
+	api.mode = "monitor"
+	h := provision(t, &Handler{APIKey: "k", APIURL: api.srv.URL, Mode: "enforce", BlockClasses: []string{"tor"}})
+	r := request(ipTor, "/", chromeUA)
+	w, next := serve(t, h, r)
+	if !next.called || w.Code != 200 || next.header.Get("X-IPScanner-Action") != "would_block" {
+		t.Fatalf("blocked on a monitor account: %d %v", w.Code, next.header)
+	}
+	if caddyhttp.GetVar(r.Context(), VarAction) != "would_block" {
+		t.Fatal("action var")
 	}
 }
 
