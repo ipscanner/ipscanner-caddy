@@ -6,7 +6,7 @@ toolchain go1.26.10
 
 require (
 	github.com/caddyserver/caddy/v2 v2.11.7
-	github.com/ipscanner/ipscanner-edge-go v0.1.2
+	github.com/ipscanner/ipscanner-edge-go v0.1.3
 	go.uber.org/zap v1.28.0
 )
 

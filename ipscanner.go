@@ -18,7 +18,7 @@ import (
 )
 
 // Version is sent in the User-Agent as ipscanner-caddy/<Version>.
-const Version = "0.1.2"
+const Version = "0.1.3"
 
 // Source is the X-IPScanner-Source value of this module.
 const Source = "caddy"
